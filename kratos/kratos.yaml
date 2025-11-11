@@ -1,0 +1,98 @@
+version: v0.14.0
+
+dsn: mysql://root:123456@tcp(127.0.0.1:3306)/kratos?parseTime=true&multiStatements=true
+
+log:
+  level: debug
+
+serve:
+  public:
+    base_url: http://127.0.0.1:3000
+    cors:
+      enabled: true
+      allowed_origins:
+        - http://127.0.0.1:3000
+        - http://localhost:3000
+      allowed_methods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+        - OPTIONS
+      allowed_headers:
+        - Content-Type
+        - Cookie
+        - Authorization
+        - X-Session-Token
+        - Accept
+      exposed_headers:
+        - Content-Type
+        - Set-Cookie
+      allow_credentials: true
+  admin:
+    base_url: http://127.0.0.1:4434/
+
+selfservice:
+  default_browser_return_url: http://127.0.0.1:3000/profile
+  allowed_return_urls:
+    - http://127.0.0.1:3000
+  
+  flows:
+    error:
+      ui_url: http://127.0.0.1:3000/error
+    
+    login:
+      ui_url: http://127.0.0.1:3000/login
+      lifespan: 10m
+      
+    registration:
+      ui_url: http://127.0.0.1:3000/registration
+      lifespan: 10m
+      after:
+        password:
+          hooks:
+            - hook: session
+    logout:
+      after:
+        default_browser_return_url: http://127.0.0.1:3000/login
+
+    settings:
+      ui_url: http://127.0.0.1:3000/settings
+      privileged_session_max_age: 15m
+      
+    recovery:
+      enabled: true
+      ui_url: http://127.0.0.1:3000/recovery
+      lifespan: 10m
+      after:
+        default_browser_return_url: http://127.0.0.1:3000/login
+      
+    verification:
+      enabled: true
+      ui_url: http://127.0.0.1:3000/verification
+      lifespan: 10m
+      after:
+        default_browser_return_url: http://127.0.0.1:3000/
+
+  methods:
+    password:
+      enabled: true
+
+hashers:
+  argon2:
+    parallelism: 1
+    memory: 128MB
+    iterations: 2
+    salt_length: 16
+    key_length: 16
+
+identity:
+  default_schema_id: default
+  schemas:
+    - id: default
+      url: file://./identity.schema.json
+
+courier:
+  smtp:
+    connection_uri: smtps://873227449@qq.com:asoihvtfvnbfbfgh@smtp.qq.com:465/?skip_ssl_verify=true

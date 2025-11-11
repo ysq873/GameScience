@@ -1,0 +1,56 @@
+type (
+	// 登录请求
+	LoginReq {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	// 注册请求  
+	RegisterReq {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+		Name {
+			First string `json:"first"`
+			Last  string `json:"last"`
+		} `json:"name"`
+	}
+	// 用户资料
+	ProfileResp {
+		Id    string `json:"id"`
+		Email string `json:"email"`
+		Name {
+			First string `json:"first"`
+			Last  string `json:"last"`
+		} `json:"name"`
+		Favorites []string `json:"favorites"`
+	}
+	// 添加收藏
+	AddFavoriteReq {
+		Item string `json:"item"`
+	}
+)
+
+service user-api {
+	@handler login
+	post /api/auth/login (LoginReq) returns (ProfileResp)
+
+	@handler register
+	post /api/auth/register (RegisterReq) returns (ProfileResp)
+
+	@handler getProfile
+	get /api/user/profile returns (ProfileResp)
+
+	@handler updateProfile
+	put /api/user/profile (ProfileResp) returns (ProfileResp)
+
+	@handler addFavorite
+	post /api/user/favorites (AddFavoriteReq) returns (ProfileResp)
+
+	@handler resetPassword
+	post /api/auth/reset-password (LoginReq) returns (string)
+}
+
+@server (
+	middleware: AuthMiddleware
+)
+service user-api {}
+
