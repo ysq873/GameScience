@@ -42,78 +42,106 @@
 </template>
 
 <script>
-import { initLoginFlow, submitLogin, getSession } from '@/api/auth'
+import { initLoginFlow, getLoginFlow, submitLogin, getSession } from '@/api/auth'
+import { Message, Lock } from '@element-plus/icons-vue'
 
 export default {
   name: 'Login',
+  components: { Message, Lock },
   data() {
     return {
       flowId: '',
+      actionUrl: '',
+      csrf_token: '',
       form: {
         identifier: '',
         password: '',
-        method: 'password'
+        method: 'password',
+        // csrf_token 会在提交前动态塞入
       },
       rules: {
         identifier: [
           { required: true, message: '请输入邮箱地址', trigger: 'blur' },
           { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
         ],
-        password: [
-          { required: true, message: '请输入密码', trigger: 'blur' }
-        ]
+        password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
       },
       loading: false
     }
   },
   async created() {
-    await this.initLoginFlow()
+    await this.prepareLoginFlow()
   },
   methods: {
-    async initLoginFlow() {
-      try {
-        const response = await initLoginFlow()
-        this.flowId = response.data.id
-        this.csrf_token = response.data.ui.nodes.find(n => n.attributes.name === 'csrf_token')?.attributes?.value
-        console.log('Login flow initialized:', this.flowId)
-        console.log('Login flow csrf_token:', this.csrf_token)
-      } catch (error) {
-        this.$message.error('初始化登录流程失败')
+    async prepareLoginFlow () {
+    try {
+      const urlFlow = this.$route.query.flow // 这里读 URL 上是否已有 flow
+      if (urlFlow) {
+        // 已有 flow，直接读取
+        const { data } = await getLoginFlow(urlFlow)
+        this.flowId   = data.id
+        this.actionUrl = data.ui.action
+        this.csrf_token = data.ui.nodes.find(n => n.attributes?.name === 'csrf_token')?.attributes?.value || ''
+        return
       }
-    },
+
+      // 没有 flow：创建一个新的（Browser 端点 + Accept: application/json + withCredentials）
+      const { data } = await initLoginFlow()
+      this.flowId    = data.id
+      this.actionUrl = data.ui.action
+      this.csrf_token = data.ui.nodes.find(n => n.attributes?.name === 'csrf_token')?.attributes?.value || ''
+
+      // 关键：把 flow 写回 URL，之后刷新/回退都能从 URL 复用
+      this.$router.replace({
+        path: this.$route.path,
+        query: { ...this.$route.query, flow: this.flowId }
+      })
+    } catch (e) {
+      // flow 过期或无效时，重新创建
+      await this.recreateLoginFlow()
+    }
+  },
+  async recreateLoginFlow () {
+    const { data } = await initLoginFlow()
+    this.flowId     = data.id
+    this.actionUrl  = data.ui.action
+    this.csrf_token = data.ui.nodes.find(n => n.attributes?.name === 'csrf_token')?.attributes?.value || ''
+    this.$router.replace({ path: this.$route.path, query: { ...this.$route.query, flow: this.flowId } })
+  },
+
     async handleLogin() {
       this.$refs.loginForm.validate(async (valid) => {
-        if (!valid || !this.flowId) return
-        
+        if (!valid || !this.flowId || !this.actionUrl) return
         this.loading = true
         try {
-          this.form.csrf_token = this.csrf_token
-          // 提交登录到 Kratos
-          const response = await submitLogin(this.flowId, this.form)
-          console.log('Login response:', response)
-          
-          // 登录成功，Kratos 会设置 session cookie
-          if (response.data?.session) {
+          const payload = { ...this.form }
+          if (this.csrf_token) payload.csrf_token = this.csrf_token
+
+          // **关键：提交到 ui.action，而不是手拼 URL**
+          const resp = await submitLogin(this.flowId, payload)
+
+          // Browser Flow 不一定回 session，这里统一以 whoami 为准
+          const me = await getSession()
+
+          if (me?.data) {
             this.$message.success('登录成功')
-            
-            // 存储用户信息到 store
             this.$store.commit('SET_USER', {
-              id: response.data.session.identity.id,
-              email: response.data.session.identity.traits.email,
-              name: response.data.session.identity.traits.name,
-              session: response.data.session
+              id: me.data.identity.id,
+              email: me.data.identity.traits?.email,
+              name: me.data.identity.traits?.name,
+              session: me.data
             })
-            
-            // 跳转到个人中心
             this.$router.push('/profile')
           } else {
             this.$message.error('登录失败，请重试')
-            await this.initLoginFlow() // 重新初始化流程
+            await this.prepareLoginFlow()
           }
         } catch (error) {
           console.error('Login error:', error)
-          this.$message.error('登录失败：' + (error.response?.data?.ui?.messages?.[0]?.text || '请检查输入'))
-          await this.initLoginFlow() // 重新初始化流程
+          const uiMsg = error.response?.data?.ui?.messages?.[0]?.text
+          const fieldMsg = error.response?.data?.ui?.nodes?.flatMap(n => n.messages || [])?.[0]?.text
+          this.$message.error('登录失败：' + (uiMsg || fieldMsg || '请检查输入'))
+          await this.prepareLoginFlow() // 处理 flow 过期等情况
         } finally {
           this.loading = false
         }
@@ -122,6 +150,7 @@ export default {
   }
 }
 </script>
+
 
 <style scoped>
 .login-container {

@@ -7,7 +7,7 @@ log:
 
 serve:
   public:
-    base_url: http://127.0.0.1:3000
+    base_url: http://127.0.0.1:4433
     cors:
       enabled: true
       allowed_origins:
@@ -32,6 +32,10 @@ serve:
       allow_credentials: true
   admin:
     base_url: http://127.0.0.1:4434/
+session:
+  cookie:
+    same_site: None       # 允许跨端口携带
+    domain: 127.0.0.1     # 可省略，默认当前域
 
 selfservice:
   default_browser_return_url: http://127.0.0.1:3000/profile
@@ -66,7 +70,9 @@ selfservice:
       ui_url: http://127.0.0.1:3000/recovery
       lifespan: 10m
       after:
-        default_browser_return_url: http://127.0.0.1:3000/login
+        hooks:
+          - hook: revoke_active_sessions
+      
       
     verification:
       enabled: true
@@ -74,6 +80,7 @@ selfservice:
       lifespan: 10m
       after:
         default_browser_return_url: http://127.0.0.1:3000/
+
 
   methods:
     password:
@@ -88,11 +95,13 @@ hashers:
     key_length: 16
 
 identity:
-  default_schema_id: default
+  default_schema_id: defaultls
   schemas:
-    - id: default
+    - id: defaultls
       url: file://./identity.schema.json
 
 courier:
+  template_override_path: ./courier-templates
   smtp:
-    connection_uri: smtps://873227449@qq.com:asoihvtfvnbfbfgh@smtp.qq.com:465/?skip_ssl_verify=true
+    from_address: 873227449@qq.com
+    connection_uri: smtps://873227449@qq.com:haajigmmyjgpbbda@smtp.qq.com:465/?skip_ssl_verify=true

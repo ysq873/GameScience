@@ -104,7 +104,7 @@ export default {
         this.csrf_token = response.data.ui.nodes.find(
           (n) => n.attributes.name === 'csrf_token'
         )?.attributes?.value
-        console.log('✅ Registration flow initialized:', this.flowId)
+        console.log('Registration flow initialized:', this.flowId)
       } catch (error) {
         console.error(error)
         this.$message.error('初始化注册流程失败')
@@ -117,7 +117,7 @@ export default {
 
         this.loading = true
         try {
-          // ✅ 按 Kratos 规范构造请求体
+          // 按 Kratos 规范构造请求体
           const payload = {
             method: 'password',
             traits: {

@@ -22,7 +22,9 @@ kratosRequest.interceptors.response.use(
 
 // 初始化注册流程
 export function initRegistrationFlow() {
-  return kratosRequest.get('/self-service/registration/browser')
+  return kratosRequest.get('/self-service/registration/browser', {
+    headers: { Accept: 'application/json' }
+  })
 }
 
 // 提交注册
@@ -32,8 +34,13 @@ export function register(flowId, data) {
 
 // 初始化登录流程
 export function initLoginFlow() {
-  return kratosRequest.get('/self-service/login/browser')
+  return kratosRequest.get('/self-service/login/browser', {
+    headers: { Accept: 'application/json' }
+  })
 }
+
+export const getLoginFlow = (id) =>
+  kratosRequest.get('/self-service/login/flows', { params: { id }, headers: { Accept: 'application/json' } })
 
 // 提交登录
 export function submitLogin(flowId, data) {
@@ -52,12 +59,25 @@ export function logout() {
 
 // 初始化恢复流程
 export function initRecoveryFlow() {
-  return kratosRequest.get('/self-service/recovery/browser')
+  return kratosRequest.get('/self-service/recovery/browser', {
+    headers: { Accept: 'application/json' }
+  })
 }
 
 
-export function recovery() {
-  return kratosRequest.get(`/self-service/recovery?flow=${flowId}`, data)
+export function recovery(flowId, data) {
+  return kratosRequest.post(`/self-service/recovery?flow=${flowId}`, data)
+}
+
+export function initSettings(flowId) {
+  return kratosRequest.get(`/self-service/settings/flows`, {
+    params: { id: flowId },
+    headers: { Accept: 'application/json' }
+  })
+}
+
+export function settings(flowId, data) {
+  return kratosRequest.post(`/self-service/settings?flow=${flowId}`, data)
 }
 
 // 获取用户档案
