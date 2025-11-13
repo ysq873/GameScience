@@ -2,7 +2,7 @@
   <div class="login-container">
     <div class="login-form">
       <h2>用户登录</h2>
-      <el-form :model="form" :rules="rules" ref="loginForm">
+      <el-form :model="form" :rules="rules" ref="loginForm" @submit.prevent>
         <el-form-item prop="identifier">
           <el-input
             v-model="form.identifier"
@@ -32,6 +32,17 @@
             {{ loading ? '登录中...' : '登录' }}
           </el-button>
         </el-form-item>
+        <el-form-item>
+          <el-button
+            type="default"
+            size="large"
+            :loading="loading"
+            @click="handleLoginGithub"
+            style="width: 100%"
+          >
+            使用 GitHub 登录
+          </el-button>
+        </el-form-item>
       </el-form>
       <div class="form-links">
         <router-link to="/register">没有账号？去注册&nbsp;&nbsp;&nbsp;&nbsp;</router-link>
@@ -42,7 +53,7 @@
 </template>
 
 <script>
-import { initLoginFlow, getLoginFlow, submitLogin, getSession } from '@/api/auth'
+import { initLoginFlow, getLoginFlow, submitLogin, getSession, startOidc } from '@/api/auth'
 import { Message, Lock } from '@element-plus/icons-vue'
 
 export default {
@@ -146,6 +157,37 @@ export default {
           this.loading = false
         }
       })
+    }
+    ,
+    async handleLoginGithub() {
+      if (!this.flowId || !this.csrf_token) {
+        await this.prepareLoginFlow()
+      }
+      this.loading = true
+      try {
+        const resp = await startOidc(this.flowId, 'github', this.csrf_token)
+        const redirectUrl = resp?.data?.redirect_browser_to || resp?.data?.continue_with?.find?.(i => i.action === 'redirect_browser_to')?.redirect_browser_to
+        if (redirectUrl) {
+          window.location.href = redirectUrl
+          return
+        }
+        this.$message.error('未获取到跳转地址')
+      } catch (error) {
+        if (error?.code === 'ERR_CANCELED' || /browser location has changed/i.test(error?.message || '')) {
+          return
+        }
+        const redirectUrl = error.response?.data?.redirect_browser_to || error.response?.data?.continue_with?.find?.(i => i.action === 'redirect_browser_to')?.redirect_browser_to
+        if (redirectUrl) {
+          window.location.href = redirectUrl
+        } else {
+          const uiMsg = error.response?.data?.ui?.messages?.[0]?.text
+          const fieldMsg = error.response?.data?.ui?.nodes?.flatMap(n => n.messages || [])?.[0]?.text
+          this.$message.error('GitHub 登录失败：' + (uiMsg || fieldMsg || error.message))
+          await this.prepareLoginFlow()
+        }
+      } finally {
+        this.loading = false
+      }
     }
   }
 }

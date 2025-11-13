@@ -12,7 +12,11 @@ kratosRequest.interceptors.response.use(
     return response
   },
   error => {
-    // Only show error messages for non-401 errors, as 401s are expected in auth flows
+    const msg = error?.message || ''
+    const code = error?.code || ''
+    if (code === 'ERR_CANCELED' || /browser location has changed/i.test(msg)) {
+      return Promise.reject(error)
+    }
     if (error.response?.status !== 401) {
       ElMessage.error(error.response?.data?.error?.message || error.response?.data?.message || '请求失败')
     }
@@ -44,7 +48,14 @@ export const getLoginFlow = (id) =>
 
 // 提交登录
 export function submitLogin(flowId, data) {
-  return kratosRequest.post(`/self-service/login?flow=${flowId}`, data)
+  const form = new URLSearchParams()
+  Object.keys(data || {}).forEach(k => {
+    const v = data[k]
+    if (v !== undefined && v !== null) form.append(k, v)
+  })
+  return kratosRequest.post(`/self-service/login?flow=${flowId}`, form, {
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' }
+  })
 }
 
 // 获取当前会话
@@ -90,4 +101,21 @@ export function settings(flowId, data) {
 // 获取用户档案
 export function getProfile() {
   return getSession()
+}
+
+export function startOidc(flowId, provider, csrf_token) {
+  const form = new URLSearchParams()
+  if (provider) form.append('provider', provider)
+  form.append('method', 'oidc')
+  if (csrf_token) form.append('csrf_token', csrf_token)
+  return kratosRequest.post(`/self-service/login?flow=${flowId}`, form, {
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' }
+  })
+}
+
+export function getError(id) {
+  return kratosRequest.get('/self-service/errors', {
+    params: { id },
+    headers: { Accept: 'application/json' }
+  })
 }

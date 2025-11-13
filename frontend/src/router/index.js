@@ -35,6 +35,13 @@ const routes = [
     component: () => import('@/views/Settings.vue'),
     meta: { showNav: false }
   }
+  ,
+  {
+    path: '/error',
+    name: 'Error',
+    component: () => import('@/views/Error.vue'),
+    meta: { showNav: false }
+  }
 ]
 
 export default routes

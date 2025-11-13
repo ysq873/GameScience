@@ -12,7 +12,6 @@ serve:
       enabled: true
       allowed_origins:
         - http://127.0.0.1:3000
-        - http://localhost:3000
       allowed_methods:
         - GET
         - POST
@@ -34,8 +33,7 @@ serve:
     base_url: http://127.0.0.1:4434/
 session:
   cookie:
-    same_site: None       # 允许跨端口携带
-    domain: 127.0.0.1     # 可省略，默认当前域
+    same_site: Lax
 
 selfservice:
   default_browser_return_url: http://127.0.0.1:3000/profile
@@ -85,6 +83,18 @@ selfservice:
   methods:
     password:
       enabled: true
+    oidc:
+      enabled: true
+      config:
+        providers:
+          - id: github
+            provider: github
+            client_id: Ov23liStfWXyELsHz90z
+            client_secret: 0354c6a979c45131fced9014febd47b71c9fb46b
+            scope:
+              - read:user
+              - user:email
+            mapper_url: file://./oidc/github.jsonnet
 
 hashers:
   argon2:
