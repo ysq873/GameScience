@@ -66,7 +66,14 @@ export function initRecoveryFlow() {
 
 
 export function recovery(flowId, data) {
-  return kratosRequest.post(`/self-service/recovery?flow=${flowId}`, data)
+  const form = new URLSearchParams()
+  Object.keys(data || {}).forEach(k => {
+    const v = data[k]
+    if (v !== undefined && v !== null) form.append(k, v)
+  })
+  return kratosRequest.post(`/self-service/recovery?flow=${flowId}`, form, {
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' }
+  })
 }
 
 export function initSettings(flowId) {

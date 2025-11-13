@@ -4,7 +4,7 @@
       <h2>重置密码</h2>
 
       <!-- Step 1: 输入邮箱 -->
-      <el-form v-if="step === 1" :model="form" :rules="rules" ref="resetForm">
+      <el-form v-if="step === 1" :model="form" :rules="rules" ref="resetForm" @submit.prevent>
         <el-form-item prop="email">
           <el-input
             v-model="form.email"
@@ -27,7 +27,7 @@
       </el-form>
 
       <!-- Step 2: 输入验证码 -->
-      <el-form v-else-if="step === 2" :model="verifyForm" ref="verifyForm">
+      <el-form v-else-if="step === 2" :model="verifyForm" ref="verifyForm" @submit.prevent>
         <el-form-item>
           <el-input
             v-model="verifyForm.code"
@@ -141,6 +141,11 @@ export default {
           code: this.verifyForm.code,
           csrf_token: this.csrf_token
         })
+        const redirectUrl = (response && response.data && (response.data.redirect_browser_to || (response.data.continue_with && response.data.continue_with.find && response.data.continue_with.find(i => i.action === 'redirect_browser_to')?.redirect_browser_to)))
+        if (redirectUrl) {
+          window.location.href = redirectUrl
+          return
+        }
         this.$message.success('验证成功，请设置新密码')
       } catch (error) {
         const redirectUrl = error.response?.data?.redirect_browser_to
