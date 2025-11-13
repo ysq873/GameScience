@@ -24,7 +24,7 @@
 
 <script>
 
-import { settings,initSettings } from '@/api/auth'
+import { settings, initSettings, getSession } from '@/api/auth'
 
 export default {
   name: 'Settings',
@@ -52,13 +52,24 @@ export default {
     async handleReset() {
       try {
         if (!this.flowId) return this.$message.error('缺少恢复令牌')
-        await settings(this.flowId, {
+        const resp = await settings(this.flowId, {
           method: 'password',
           password: this.form.password,
           csrf_token: this.csrf_token
         })
-        this.$message.success('密码重置成功，请重新登录')
-        this.$router.push('/login')
+        const redirectUrl = (resp && resp.data && (resp.data.redirect_browser_to || (resp.data.continue_with && resp.data.continue_with.find && resp.data.continue_with.find(i => i.action === 'redirect_browser_to')?.redirect_browser_to)))
+        if (redirectUrl && !/\/settings(\?|$)/.test(redirectUrl)) {
+          window.location.href = redirectUrl
+          return
+        }
+        const me = await getSession().catch(() => null)
+        if (me && me.data) {
+          this.$message.success('密码重置成功')
+          this.$router.push('/profile')
+        } else {
+          this.$message.success('密码重置成功，请重新登录')
+          this.$router.push('/login')
+        }
       } catch (error) {
         console.error(error)
         this.$message.error('密码重置失败：' + (error.response?.data?.error?.message || error.message))
