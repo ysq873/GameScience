@@ -39,6 +39,11 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Path:    "/api/models/detail",
 				Handler: getModelHandler(serverCtx),
 			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/api/static",
+				Handler: staticHandler(serverCtx),
+			},
 		},
 	)
 

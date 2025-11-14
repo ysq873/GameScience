@@ -66,9 +66,20 @@
           </div>
         </template>
         <el-table :data="myList" v-loading="myLoading" style="width:100%">
-          <el-table-column prop="id" label="ID" width="80" />
           <el-table-column prop="title" label="标题" />
-          <el-table-column prop="price_cents" label="价格" />
+          <el-table-column label="价格">
+            <template #default="scope">
+              {{ (Number(scope.row.price_cents) / 100).toFixed(2) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="封面" width="160">
+            <template #default="scope">
+              <template v-if="scope.row.cover_url">
+                <img :src="isAbsolute(scope.row.cover_url) ? scope.row.cover_url : coverSrc(scope.row.cover_url)" style="width:120px;height:72px;object-fit:cover;border-radius:4px" />
+              </template>
+              <span v-else>无封面</span>
+            </template>
+          </el-table-column>
           <el-table-column label="状态" width="120">
             <template #default="scope">
               {{ statusText(scope.row.status) }}
@@ -218,6 +229,13 @@ export default {
       } catch (e) {
         this.$message.error('上传失败')
       } finally { this.uploading = false }
+    },
+    isAbsolute(u) { return /^https?:\/\//i.test(u) },
+    coverLink(u) { return this.isAbsolute(u) ? u : u },
+    coverSrc(c) {
+      if (!c) return ''
+      const norm = String(c).replace(/\\/g, '/')
+      return `/api/static?file=${encodeURIComponent(norm)}`
     },
     removeFavorite(index) {
       this.$confirm('确定要删除这个收藏吗？', '提示', {
