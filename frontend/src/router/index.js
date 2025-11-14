@@ -33,13 +33,13 @@ const routes = [
     path: '/models',
     name: 'Models',
     component: () => import('@/views/Models.vue'),
-    meta: { showNav: true, requiresAuth: true }
+    meta: { showNav: true }
   },
   {
     path: '/models/:id',
     name: 'ModelDetail',
     component: () => import('@/views/ModelDetail.vue'),
-    meta: { showNav: true, requiresAuth: true }
+    meta: { showNav: true }
   },
   {
     path: '/orders',

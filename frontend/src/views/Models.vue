@@ -61,7 +61,6 @@
 
 <script>
 import { listModels, uploadModel } from '@/api/models'
-import { getSession } from '@/api/auth'
 
 export default {
   name: 'Models',
@@ -72,23 +71,8 @@ export default {
       upload: { title: '', description: '', price_cents: null, file: null, cover: null }
     }
   },
-  mounted() { this.ensureUser().then(() => this.fetch()) },
+  mounted() { this.fetch() },
   methods: {
-    async ensureUser() {
-      try {
-        const me = await getSession()
-        if (me?.data?.identity?.id) {
-          this.$store.commit('SET_USER', {
-            id: me.data.identity.id,
-            email: me.data.identity.traits?.email,
-            name: me.data.identity.traits?.name,
-            session: me.data
-          })
-          return
-        }
-      } catch (e) {}
-      this.$router.replace('/login')
-    },
     async fetch() {
       this.loading = true
       try {

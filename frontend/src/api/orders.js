@@ -21,5 +21,5 @@ export function refundOrder(id) {
 }
 
 export function mockCallback(orderId, status, idempotencyKey) {
-  return apiRequest.post('/payments/callback', { orderId, status, idempotencyKey })
+  return apiRequest.post('/payments/callback', { order_id: orderId, status, idempotency_key: idempotencyKey })
 }

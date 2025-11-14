@@ -13,13 +13,14 @@ type LoginReq struct {
 }
 
 type ProfileResp struct {
-	Id    string `json:"id"`
-	Email string `json:"email"`
-	Name  struct {
-		First string `json:"first"`
-		Last  string `json:"last"`
-	} `json:"name"`
-	Favorites []string `json:"favorites"`
+    Id    string `json:"id"`
+    Email string `json:"email"`
+    Name  struct {
+        First string `json:"first"`
+        Last  string `json:"last"`
+    } `json:"name"`
+    Favorites []string `json:"favorites"`
+    BalanceCents int64 `json:"balance_cents"`
 }
 
 type RegisterReq struct {

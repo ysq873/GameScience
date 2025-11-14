@@ -15,9 +15,10 @@
             <span>{{ user.email }}</span>
           </div>
           <div class="info-item">
-            <label>姓名:</label>
-            <span>{{ user.name.first }} {{ user.name.last }}</span>
+            <label>余额:</label>
+            <span>￥{{ (Number(user.balance_cents||0)/100).toFixed(2) }}</span>
           </div>
+          
         </div>
       </el-card>
 
@@ -169,7 +170,8 @@ export default {
         const response = await getProfile()
         this.user = response.data
       } catch (error) {
-        this.$message.error('获取用户资料失败')
+        this.$message.error('请先登录后查看个人中心')
+        this.$router.push('/login')
       }
     },
     async addFavorite() {
@@ -323,3 +325,4 @@ export default {
   margin-top: 2rem;
 }
 </style>
+    

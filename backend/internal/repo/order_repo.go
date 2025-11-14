@@ -159,6 +159,11 @@ func (r *OrderRepo) ApplyPaymentSucceeded(ctx context.Context, orderId int64, ca
 		for _, it := range items {
 			_, _ = session.ExecCtx(ctx, "INSERT IGNORE INTO purchases(user_id,model_id,order_id) VALUES(?,?,?)", userId, it.ModelId, orderId)
 		}
+		var amount int64
+		_ = session.QueryRowCtx(ctx, &amount, "SELECT total_cents FROM orders WHERE id=?", orderId)
+		if _, err := session.ExecCtx(ctx, "UPDATE users SET balance=balance-? WHERE kratos_id=?", amount, userId); err != nil {
+			return err
+		}
 		return nil
 	})
 }
@@ -176,6 +181,13 @@ func (r *OrderRepo) ApplyRefund(ctx context.Context, orderId int64) error {
 			return errors.New("only paid can refund")
 		}
 		if _, err := session.ExecCtx(ctx, "UPDATE orders SET status=? WHERE id=?", OrderStatusRefunded, orderId); err != nil {
+			return err
+		}
+		var userId string
+		_ = session.QueryRowCtx(ctx, &userId, "SELECT user_id FROM orders WHERE id=?", orderId)
+		var amount int64
+		_ = session.QueryRowCtx(ctx, &amount, "SELECT total_cents FROM orders WHERE id=?", orderId)
+		if _, err := session.ExecCtx(ctx, "UPDATE users SET balance=balance+? WHERE kratos_id=?", amount, userId); err != nil {
 			return err
 		}
 		return nil

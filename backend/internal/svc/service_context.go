@@ -81,6 +81,18 @@ func NewServiceContext(c config.Config) *ServiceContext {
   one_time TINYINT(1) NOT NULL DEFAULT 1,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )`)
+		_ = sc.DB.Exec(`CREATE TABLE IF NOT EXISTS user_accounts (
+  user_id VARCHAR(64) PRIMARY KEY,
+  balance_cents BIGINT NOT NULL DEFAULT 0,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+)`)
+		_ = sc.DB.Exec(`CREATE TABLE IF NOT EXISTS users (
+  user_id VARCHAR(64) PRIMARY KEY,
+  balance_cents BIGINT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+)`)
+		// 简化余额实现：仅使用 users.balance_cents
 	}
 	return sc
 }

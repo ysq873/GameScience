@@ -5,10 +5,12 @@ package logic
 
 import (
     "context"
+    "net/http"
 
     "backend/internal/middleware"
     "backend/internal/svc"
     "backend/internal/types"
+    "backend/internal/repo"
 
     "github.com/zeromicro/go-zero/core/logx"
 )
@@ -30,7 +32,7 @@ func NewGetProfileLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetPro
 func (l *GetProfileLogic) GetProfile() (resp *types.ProfileResp, err error) {
     sess, ok := middleware.GetSessionFromCtx(l.ctx)
     if !ok {
-        return nil, nil
+        return nil, http.ErrNoCookie
     }
 	id := sess.GetIdentity().Id
 	traits := sess.GetIdentity().Traits
@@ -40,6 +42,9 @@ func (l *GetProfileLogic) GetProfile() (resp *types.ProfileResp, err error) {
 			email = v
 		}
 	}
-	r := &types.ProfileResp{Id: id, Email: email}
-	return r, nil
+    r := &types.ProfileResp{Id: id, Email: email}
+    ur := repo.NewUsersRepo(l.svcCtx.DB.Conn)
+    bal, _ := ur.GetOrInit(l.ctx, id)
+    r.BalanceCents = bal
+    return r, nil
 }

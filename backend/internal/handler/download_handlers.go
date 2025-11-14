@@ -1,45 +1,63 @@
 package handler
 
 import (
-    "net/http"
-    "os"
-    "path/filepath"
-    "strconv"
-    "time"
+	"database/sql"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
 
-    "backend/internal/middleware"
-    "backend/internal/repo"
-    "backend/internal/svc"
+	"backend/internal/middleware"
+	"backend/internal/repo"
+	"backend/internal/svc"
 
-    "github.com/zeromicro/go-zero/rest/httpx"
+	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
 func listPurchasesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-        sess, ok := middleware.GetSessionFromCtx(r.Context())
-        if !ok {
-            httpx.ErrorCtx(r.Context(), w, http.ErrNoCookie)
-            return
-        }
-        uid := sess.GetIdentity().Id
-		var rows []struct{ ModelId int64 }
-		err := svcCtx.DB.Conn.QueryRowsCtx(r.Context(), &rows, "SELECT model_id FROM purchases WHERE user_id=? ORDER BY id DESC", uid)
+		sess, ok := middleware.GetSessionFromCtx(r.Context())
+		if !ok {
+			httpx.ErrorCtx(r.Context(), w, http.ErrNoCookie)
+			return
+		}
+		uid := sess.GetIdentity().Id
+		type Row struct {
+			ModelId  int64
+			Title    sql.NullString
+			CoverUrl sql.NullString
+		}
+		var rows []Row
+		err := svcCtx.DB.Conn.QueryRowsCtx(r.Context(), &rows, "SELECT p.model_id, m.title, m.cover_url FROM purchases p JOIN models m ON m.id=p.model_id WHERE p.user_id=? ORDER BY p.id DESC", uid)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
 		}
-		httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{"list": rows})
+		out := make([]map[string]interface{}, 0, len(rows))
+		for _, r := range rows {
+			title := ""
+			if r.Title.Valid {
+				title = r.Title.String
+			}
+			cover := ""
+			if r.CoverUrl.Valid {
+				cover = r.CoverUrl.String
+			}
+			out = append(out, map[string]interface{}{"model_id": r.ModelId, "title": title, "cover_url": cover})
+		}
+		httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{"list": out})
 	}
 }
 
 func generateDownloadTokenHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-        sess, ok := middleware.GetSessionFromCtx(r.Context())
-        if !ok {
-            httpx.ErrorCtx(r.Context(), w, http.ErrNoCookie)
-            return
-        }
-        uid := sess.GetIdentity().Id
+		sess, ok := middleware.GetSessionFromCtx(r.Context())
+		if !ok {
+			httpx.ErrorCtx(r.Context(), w, http.ErrNoCookie)
+			return
+		}
+		uid := sess.GetIdentity().Id
 		midStr := r.URL.Query().Get("model_id")
 		if midStr == "" {
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
@@ -69,11 +87,11 @@ func generateDownloadTokenHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func downloadByTokenHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-    sess, ok := middleware.GetSessionFromCtx(r.Context())
-    if !ok {
-        httpx.ErrorCtx(r.Context(), w, http.ErrNoCookie)
-        return
-    }
+		sess, ok := middleware.GetSessionFromCtx(r.Context())
+		if !ok {
+			httpx.ErrorCtx(r.Context(), w, http.ErrNoCookie)
+			return
+		}
 		uid := sess.GetIdentity().Id
 		token := r.URL.Query().Get("token")
 		dr := repo.NewDownloadRepo(svcCtx.DB.Conn)
