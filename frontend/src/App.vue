@@ -2,8 +2,11 @@
   <div id="app">
     <nav class="navbar" v-if="$route.meta.showNav">
       <div class="nav-container">
-        <router-link to="/" class="nav-brand">用户认证系统</router-link>
+        <router-link to="/" class="nav-brand">3D 模型售卖下载后台</router-link>
         <div class="nav-links">
+          <router-link to="/models" v-if="user.id">作品</router-link>
+          <router-link to="/orders" v-if="user.id">订单</router-link>
+          <router-link to="/library" v-if="user.id">已购库</router-link>
           <router-link to="/profile" v-if="user.id">个人中心</router-link>
           <router-link to="/login" v-if="!user.id">登录</router-link>
           <router-link to="/register" v-if="!user.id">注册</router-link>

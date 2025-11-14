@@ -1,1 +1,0 @@
-kratos serve --config kratos.yaml --watch-courier

@@ -3,7 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 const routes = [
   {
     path: '/',
-    redirect: '/profile'
+    redirect: '/models'
   },
   {
     path: '/login',
@@ -27,6 +27,36 @@ const routes = [
     path: '/profile',
     name: 'Profile',
     component: () => import('@/views/Profile.vue'),
+    meta: { showNav: true, requiresAuth: true }
+  },
+  {
+    path: '/models',
+    name: 'Models',
+    component: () => import('@/views/Models.vue'),
+    meta: { showNav: true, requiresAuth: true }
+  },
+  {
+    path: '/models/:id',
+    name: 'ModelDetail',
+    component: () => import('@/views/ModelDetail.vue'),
+    meta: { showNav: true, requiresAuth: true }
+  },
+  {
+    path: '/orders',
+    name: 'Orders',
+    component: () => import('@/views/Orders.vue'),
+    meta: { showNav: true, requiresAuth: true }
+  },
+  {
+    path: '/pay/:orderId',
+    name: 'Pay',
+    component: () => import('@/views/Pay.vue'),
+    meta: { showNav: true, requiresAuth: true }
+  },
+  {
+    path: '/library',
+    name: 'Library',
+    component: () => import('@/views/Library.vue'),
     meta: { showNav: true, requiresAuth: true }
   },
   {

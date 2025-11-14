@@ -1,0 +1,3 @@
+kratos serve --config kratos.yaml --watch-courier
+
+go run . -f etc/user-api.yaml

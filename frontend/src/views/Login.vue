@@ -48,6 +48,13 @@
         <router-link to="/register">没有账号？去注册&nbsp;&nbsp;&nbsp;&nbsp;</router-link>
         <router-link to="/reset-password">忘记密码？</router-link>
       </div>
+      <div v-if="alreadyLogged" class="logged-tip">
+        <el-alert title="当前处于恢复账号流程，请先退出或去重置密码" type="info" show-icon />
+        <div style="margin-top: 10px; display: flex; gap: 12px; justify-content: center;">
+          <el-button @click="$router.push({ path: '/reset-password', query: { from: 'recovery' } })" type="primary">去设置新密码</el-button>
+          <el-button @click="logoutAndRedirect" type="warning">退出登录</el-button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -78,12 +85,41 @@ export default {
         password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
       },
       loading: false
+      , alreadyLogged: false
     }
   },
   async created() {
-    await this.prepareLoginFlow()
+    const logged = await this.checkSession()
+    if (!logged) {
+      await this.prepareLoginFlow()
+    }
   },
   methods: {
+    isRecoveryCtx() {
+      return this.$route.query.from === 'recovery'
+    },
+    async checkSession() {
+      try {
+        const me = await getSession()
+        if (me?.data?.identity?.id) {
+          const methods = Array.isArray(me.data.authentication_methods) ? me.data.authentication_methods : []
+          const isRecoverySession = methods.some(m => m.method === 'code_recovery')
+          if (isRecoverySession) {
+            this.alreadyLogged = true
+          } else {
+            this.$store.commit('SET_USER', {
+              id: me.data.identity.id,
+              email: me.data.identity.traits?.email,
+              name: me.data.identity.traits?.name,
+              session: me.data
+            })
+            this.$router.replace('/models')
+          }
+          return true
+        }
+      } catch (e) {}
+      return false
+    },
     async prepareLoginFlow () {
     try {
       const urlFlow = this.$route.query.flow // 这里读 URL 上是否已有 flow
@@ -142,7 +178,7 @@ export default {
               name: me.data.identity.traits?.name,
               session: me.data
             })
-            this.$router.push('/profile')
+            this.$router.push('/models')
           } else {
             this.$message.error('登录失败，请重试')
             await this.prepareLoginFlow()
@@ -159,6 +195,20 @@ export default {
       })
     }
     ,
+    async logoutAndRedirect() {
+      try {
+        const res = await logout()
+        const logoutUrl = res.data.logout_url
+        if (logoutUrl) {
+          this.$store.commit('CLEAR_USER')
+          window.location.replace(logoutUrl)
+        } else {
+          this.$message.error('退出登录失败')
+        }
+      } catch(e) {
+        this.$message.error('退出登录失败')
+      }
+    },
     async handleLoginGithub() {
       if (!this.flowId || !this.csrf_token) {
         await this.prepareLoginFlow()
@@ -236,5 +286,10 @@ export default {
 
 .form-links a:hover {
   color: #007bff;
+}
+
+.logged-tip {
+  margin-top: 12px;
+  text-align: center;
 }
 </style>
