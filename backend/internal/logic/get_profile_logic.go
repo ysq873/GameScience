@@ -4,14 +4,13 @@
 package logic
 
 import (
-	"context"
+    "context"
 
-	"backend/internal/middleware"
-	"backend/internal/svc"
-	"backend/internal/types"
+    "backend/internal/middleware"
+    "backend/internal/svc"
+    "backend/internal/types"
 
-	ory "github.com/ory/kratos-client-go"
-	"github.com/zeromicro/go-zero/core/logx"
+    "github.com/zeromicro/go-zero/core/logx"
 )
 
 type GetProfileLogic struct {
@@ -29,7 +28,10 @@ func NewGetProfileLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetPro
 }
 
 func (l *GetProfileLogic) GetProfile() (resp *types.ProfileResp, err error) {
-	sess, _ := l.ctx.Value(middleware.CtxKratosSession).(ory.Session)
+    sess, ok := middleware.GetSessionFromCtx(l.ctx)
+    if !ok {
+        return nil, nil
+    }
 	id := sess.GetIdentity().Id
 	traits := sess.GetIdentity().Traits
 	var email string

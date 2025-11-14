@@ -1,2 +1,4 @@
 **/node_modules/
 .trae/
+storage/
+frontend/dist/assets/

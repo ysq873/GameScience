@@ -12,107 +12,117 @@ import (
 )
 
 func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
-    server.AddRoutes(
-        []rest.Route{
-            {
-                Method:  http.MethodPost,
-                Path:    "/api/auth/login",
-                Handler: loginHandler(serverCtx),
-            },
-            {
-                Method:  http.MethodPost,
-                Path:    "/api/auth/register",
-                Handler: registerHandler(serverCtx),
-            },
-            {
-                Method:  http.MethodPost,
-                Path:    "/api/auth/reset-password",
-                Handler: resetPasswordHandler(serverCtx),
-            },
-            {
-                Method:  http.MethodGet,
-                Path:    "/api/models",
-                Handler: listModelsHandler(serverCtx),
-            },
-            {
-                Method:  http.MethodGet,
-                Path:    "/api/models/detail",
-                Handler: getModelHandler(serverCtx),
-            },
-        },
-    )
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodPost,
+				Path:    "/api/auth/login",
+				Handler: loginHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/api/auth/register",
+				Handler: registerHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/api/auth/reset-password",
+				Handler: resetPasswordHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/api/models",
+				Handler: listModelsHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/api/models/detail",
+				Handler: getModelHandler(serverCtx),
+			},
+		},
+	)
 
-    server.AddRoutes(
-        rest.WithMiddlewares(
-            []rest.Middleware{serverCtx.AuthMiddleware},
-            []rest.Route{
-                {
-                    Method:  http.MethodPost,
-                    Path:    "/api/user/favorites",
-                    Handler: addFavoriteHandler(serverCtx),
-                },
-                {
-                    Method:  http.MethodGet,
-                    Path:    "/api/user/profile",
-                    Handler: getProfileHandler(serverCtx),
-                },
-                {
-                    Method:  http.MethodPut,
-                    Path:    "/api/user/profile",
-                    Handler: updateProfileHandler(serverCtx),
-                },
-                {
-                    Method:  http.MethodPut,
-                    Path:    "/api/models/status",
-                    Handler: updateModelStatusHandler(serverCtx),
-                },
-                {
-                    Method:  http.MethodPost,
-                    Path:    "/api/orders",
-                    Handler: createOrderHandler(serverCtx),
-                },
-                {
-                    Method:  http.MethodPost,
-                    Path:    "/api/orders/pay",
-                    Handler: payOrderHandler(serverCtx),
-                },
-                {
-                    Method:  http.MethodGet,
-                    Path:    "/api/orders",
-                    Handler: listOrdersHandler(serverCtx),
-                },
-                {
-                    Method:  http.MethodPost,
-                    Path:    "/api/orders/refund",
-                    Handler: refundOrderHandler(serverCtx),
-                },
-                {
-                    Method:  http.MethodGet,
-                    Path:    "/api/purchases",
-                    Handler: listPurchasesHandler(serverCtx),
-                },
-                {
-                    Method:  http.MethodPost,
-                    Path:    "/api/models/download-token",
-                    Handler: generateDownloadTokenHandler(serverCtx),
-                },
-                {
-                    Method:  http.MethodGet,
-                    Path:    "/api/download",
-                    Handler: downloadByTokenHandler(serverCtx),
-                },
-            }...,
-        ),
-    )
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.AuthMiddleware},
+			[]rest.Route{
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/user/favorites",
+					Handler: addFavoriteHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/user/profile",
+					Handler: getProfileHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/user/profile",
+					Handler: updateProfileHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/models/status",
+					Handler: updateModelStatusHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/models/upload",
+					Handler: uploadModelHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/orders",
+					Handler: createOrderHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/orders/pay",
+					Handler: payOrderHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/orders",
+					Handler: listOrdersHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/user/models",
+					Handler: listMyModelsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/orders/refund",
+					Handler: refundOrderHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/purchases",
+					Handler: listPurchasesHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/models/download-token",
+					Handler: generateDownloadTokenHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/download",
+					Handler: downloadByTokenHandler(serverCtx),
+				},
+			}...,
+		),
+	)
 
-    // 模拟支付网关回调无需登录，但需服务端签名校验（后续可在此处加自定义中间件）
-    server.AddRoutes(
-        []rest.Route{
-            {
-                Method:  http.MethodPost,
-                Path:    "/api/payments/callback",
-                Handler: mockCallbackHandler(serverCtx),
-            },
-        },
-    )
+	// 模拟支付网关回调无需登录，但需服务端签名校验（后续可在此处加自定义中间件）
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodPost,
+				Path:    "/api/payments/callback",
+				Handler: mockCallbackHandler(serverCtx),
+			},
+		},
+	)
 }

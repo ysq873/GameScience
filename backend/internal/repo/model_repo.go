@@ -15,7 +15,7 @@ type Model struct {
     PriceCents int64
     CoverUrl   sql.NullString
     FilePath   string
-    Status     string
+    Status     int
 }
 
 type ModelRepo struct{
@@ -28,9 +28,19 @@ func (r *ModelRepo) ListListed(ctx context.Context, page, size int) ([]Model, er
     if size <= 0 { size = 20 }
     if page <= 0 { page = 1 }
     offset := (page-1)*size
-    query := "SELECT id, owner_id, title, description, price_cents, cover_url, file_path, status FROM models WHERE status='listed' ORDER BY id DESC LIMIT ? OFFSET ?"
+    query := "SELECT id, owner_id, title, description, price_cents, cover_url, file_path, status FROM models WHERE status=1 ORDER BY id DESC LIMIT ? OFFSET ?"
     var rows []Model
     err := r.db.QueryRowsCtx(ctx, &rows, query, size, offset)
+    return rows, err
+}
+
+func (r *ModelRepo) ListByOwner(ctx context.Context, ownerId string, page, size int) ([]Model, error) {
+    if size <= 0 { size = 20 }
+    if page <= 0 { page = 1 }
+    offset := (page-1)*size
+    query := "SELECT id, owner_id, title, description, price_cents, cover_url, file_path, status FROM models WHERE owner_id=? ORDER BY id DESC LIMIT ? OFFSET ?"
+    var rows []Model
+    err := r.db.QueryRowsCtx(ctx, &rows, query, ownerId, size, offset)
     return rows, err
 }
 

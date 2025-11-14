@@ -1,24 +1,27 @@
 package handler
 
 import (
-	"net/http"
-	"os"
-	"path/filepath"
-	"strconv"
-	"time"
+    "net/http"
+    "os"
+    "path/filepath"
+    "strconv"
+    "time"
 
-	"backend/internal/middleware"
-	"backend/internal/repo"
-	"backend/internal/svc"
+    "backend/internal/middleware"
+    "backend/internal/repo"
+    "backend/internal/svc"
 
-	ory "github.com/ory/kratos-client-go"
-	"github.com/zeromicro/go-zero/rest/httpx"
+    "github.com/zeromicro/go-zero/rest/httpx"
 )
 
 func listPurchasesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		sess, _ := r.Context().Value(middleware.CtxKratosSession).(ory.Session)
-		uid := sess.GetIdentity().Id
+        sess, ok := middleware.GetSessionFromCtx(r.Context())
+        if !ok {
+            httpx.ErrorCtx(r.Context(), w, http.ErrNoCookie)
+            return
+        }
+        uid := sess.GetIdentity().Id
 		var rows []struct{ ModelId int64 }
 		err := svcCtx.DB.Conn.QueryRowsCtx(r.Context(), &rows, "SELECT model_id FROM purchases WHERE user_id=? ORDER BY id DESC", uid)
 		if err != nil {
@@ -31,8 +34,12 @@ func listPurchasesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func generateDownloadTokenHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		sess, _ := r.Context().Value(middleware.CtxKratosSession).(ory.Session)
-		uid := sess.GetIdentity().Id
+        sess, ok := middleware.GetSessionFromCtx(r.Context())
+        if !ok {
+            httpx.ErrorCtx(r.Context(), w, http.ErrNoCookie)
+            return
+        }
+        uid := sess.GetIdentity().Id
 		midStr := r.URL.Query().Get("model_id")
 		if midStr == "" {
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
@@ -62,7 +69,11 @@ func generateDownloadTokenHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func downloadByTokenHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		sess, _ := r.Context().Value(middleware.CtxKratosSession).(ory.Session)
+    sess, ok := middleware.GetSessionFromCtx(r.Context())
+    if !ok {
+        httpx.ErrorCtx(r.Context(), w, http.ErrNoCookie)
+        return
+    }
 		uid := sess.GetIdentity().Id
 		token := r.URL.Query().Get("token")
 		dr := repo.NewDownloadRepo(svcCtx.DB.Conn)

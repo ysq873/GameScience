@@ -1,1 +1,0 @@
-import{r as t}from"./request-db331112.js";function o(r){return t({url:"/auth/login",method:"post",data:r})}function s(r){return t({url:"/auth/register",method:"post",data:r})}function u(r){return t({url:"/auth/reset-password",method:"post",data:r})}export{u as a,o as l,s as r};

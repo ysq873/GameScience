@@ -11,7 +11,6 @@ import (
 	"backend/internal/repo"
 	"backend/internal/svc"
 
-	ory "github.com/ory/kratos-client-go"
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
@@ -26,7 +25,11 @@ func createOrderHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
 		}
-		sess, _ := r.Context().Value(middleware.CtxKratosSession).(ory.Session)
+		sess, ok := middleware.GetSessionFromCtx(r.Context())
+		if !ok {
+			httpx.ErrorCtx(r.Context(), w, http.ErrNoCookie)
+			return
+		}
 		userId := sess.GetIdentity().Id
 		or := repo.NewOrderRepo(svcCtx.DB.Conn)
 		oid, err := or.Create(r.Context(), userId, req.Items)
@@ -103,7 +106,11 @@ func mockCallbackHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func listOrdersHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		sess, _ := r.Context().Value(middleware.CtxKratosSession).(ory.Session)
+		sess, ok := middleware.GetSessionFromCtx(r.Context())
+		if !ok {
+			httpx.ErrorCtx(r.Context(), w, http.ErrNoCookie)
+			return
+		}
 		userId := sess.GetIdentity().Id
 		or := repo.NewOrderRepo(svcCtx.DB.Conn)
 		rows, err := or.ListByUser(r.Context(), userId)

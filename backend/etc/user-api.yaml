@@ -3,3 +3,4 @@ Host: 0.0.0.0
 Port: 8888
 KratosPublicURL: http://127.0.0.1:4433
 MysqlDataSource: root:123456@tcp(127.0.0.1:3306)/gsbackend?parseTime=true&multiStatements=true
+StorageBasePath: d:\\code\\Gowork\\GameScience\\storage

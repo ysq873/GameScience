@@ -4,10 +4,12 @@ package middleware
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
 	ory "github.com/ory/kratos-client-go"
+	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
@@ -44,17 +46,35 @@ func (m *KratosSessionMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc
 			// 若你的 SDK 没有 XSessionToken()，也可以自己发起 HTTP 请求设置该头部。
 		}
 
-		// 2) 浏览器流：ory_kratos_session Cookie
-		if c, err := r.Cookie("ory_kratos_session"); err == nil {
-			if s, _, err := m.cli.FrontendAPI.ToSession(r.Context()).
-				Cookie("ory_kratos_session=" + c.Value).
-				Execute(); err == nil && s.GetActive() {
-				r = r.WithContext(context.WithValue(r.Context(), CtxKratosSession, s))
-				next(w, r)
-				return
+		var sessCookie string
+		if raw := r.Header.Get("Cookie"); raw != "" {
+			if v := extractCookie(raw, "ory_kratos_session"); v != "" {
+				sessCookie = v
 			}
 		}
-
+		if sessCookie == "" {
+			if c, err := r.Cookie("ory_kratos_session"); err == nil {
+				sessCookie = c.Value
+			}
+		}
+		if sessCookie != "" {
+			if s, resp, err := m.cli.FrontendAPI.ToSession(r.Context()).
+				Cookie("ory_kratos_session=" + sessCookie).
+				Execute(); err == nil && s.GetActive() {
+				r = r.WithContext(context.WithValue(r.Context(), CtxKratosSession, s))
+				fmt.Println("whoami:", s)
+				next(w, r)
+				return
+			} else {
+				if resp != nil {
+					logx.Errorf("kratos whoami failed, status=%d", resp.StatusCode)
+				} else {
+					logx.Errorf("kratos whoami failed, no response")
+				}
+			}
+		} else {
+			logx.Errorf("no ory_kratos_session cookie in request")
+		}
 		// 无有效会话
 		httpx.ErrorCtx(r.Context(), w, errors.New(http.StatusText(http.StatusUnauthorized)))
 	}
@@ -68,4 +88,29 @@ func tokenFromHeaders(r *http.Request) string {
 		return strings.TrimSpace(a[len("bearer "):])
 	}
 	return ""
+}
+
+func extractCookie(raw string, name string) string {
+	parts := strings.Split(raw, ";")
+	for _, p := range parts {
+		kv := strings.SplitN(strings.TrimSpace(p), "=", 2)
+		if len(kv) == 2 && kv[0] == name {
+			return kv[1]
+		}
+	}
+	return ""
+}
+
+func GetSessionFromCtx(ctx context.Context) (ory.Session, bool) {
+	v := ctx.Value(CtxKratosSession)
+	if v == nil {
+		return ory.Session{}, false
+	}
+	if s, ok := v.(ory.Session); ok {
+		return s, true
+	}
+	if ps, ok := v.(*ory.Session); ok && ps != nil {
+		return *ps, true
+	}
+	return ory.Session{}, false
 }

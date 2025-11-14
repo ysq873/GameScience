@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS models (
   price_cents INT NOT NULL,
   cover_url VARCHAR(512),
   file_path VARCHAR(512) NOT NULL,
-  status ENUM('listed','delisted','draft') NOT NULL DEFAULT 'draft',
+  status TINYINT NOT NULL DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

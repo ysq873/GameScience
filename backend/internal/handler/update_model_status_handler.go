@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -11,7 +12,7 @@ import (
 )
 
 type UpdateStatusReq struct {
-	Status string `json:"status"`
+	Status int `json:"status"`
 }
 
 func updateModelStatusHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
@@ -26,17 +27,48 @@ func updateModelStatusHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}
-		var req UpdateStatusReq
-		if err := httpx.Parse(r, &req); err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
-			return
+		var statusInt int
+		{
+			var m map[string]interface{}
+			if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
+				httpx.ErrorCtx(r.Context(), w, err)
+				return
+			}
+			v, ok := m["status"]
+			if !ok {
+				http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+				return
+			}
+			switch t := v.(type) {
+			case float64:
+				statusInt = int(t)
+			case string:
+				switch t {
+				case "listed":
+					statusInt = 1
+				case "delisted":
+					statusInt = 2
+				case "draft":
+					statusInt = 0
+				default:
+					n, err := strconv.Atoi(t)
+					if err != nil {
+						http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+						return
+					}
+					statusInt = n
+				}
+			default:
+				http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+				return
+			}
 		}
-		if req.Status != "listed" && req.Status != "delisted" && req.Status != "draft" {
+		if statusInt != 0 && statusInt != 1 && statusInt != 2 {
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}
 		repoM := repo.NewModelRepo(svcCtx.DB.Conn)
-		if err := repoM.UpdateStatus(r.Context(), id, req.Status); err != nil {
+		if err := repoM.UpdateStatus(r.Context(), id, strconv.Itoa(statusInt)); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
 		}

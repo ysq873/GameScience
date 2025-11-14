@@ -9,4 +9,5 @@ type Config struct {
     rest.RestConf
     KratosPublicURL string
     MysqlDataSource string
+    StorageBasePath string
 }

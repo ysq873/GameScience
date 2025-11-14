@@ -58,6 +58,58 @@
         </el-table>
       </el-card>
 
+      <el-card class="my-models-card" style="margin-top: 1.5rem">
+        <template #header>
+          <div class="card-header">
+            <span>我的作品</span>
+            <el-button type="primary" style="float:right" @click="uploadDialogVisible = true">上传我的作品</el-button>
+          </div>
+        </template>
+        <el-table :data="myList" v-loading="myLoading" style="width:100%">
+          <el-table-column prop="id" label="ID" width="80" />
+          <el-table-column prop="title" label="标题" />
+          <el-table-column prop="price_cents" label="价格" />
+          <el-table-column label="状态" width="120">
+            <template #default="scope">
+              {{ statusText(scope.row.status) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="220">
+            <template #default="scope">
+              <el-button size="small" type="success" @click="setStatus(scope.row.id, 'listed')">上架</el-button>
+              <el-button size="small" @click="setStatus(scope.row.id, 'delisted')">下架</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+        <div style="margin-top: 12px; display:flex; justify-content:center">
+          <el-pagination layout="prev, pager, next" :page-size="mySize" :current-page="myPage" @current-change="changeMyPage" />
+        </div>
+      </el-card>
+
+      <el-dialog v-model="uploadDialogVisible" title="上传我的作品" width="520px">
+        <el-form :model="upload" label-width="100px">
+          <el-form-item label="标题">
+            <el-input v-model="upload.title" />
+          </el-form-item>
+          <el-form-item label="描述">
+            <el-input type="textarea" v-model="upload.description" />
+          </el-form-item>
+          <el-form-item label="价格(分)">
+            <el-input v-model.number="upload.price_cents" />
+          </el-form-item>
+          <el-form-item label="模型文件">
+            <input type="file" @change="onFileChange" />
+          </el-form-item>
+          <el-form-item label="封面图片">
+            <input type="file" @change="onCoverChange" />
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <el-button @click="uploadDialogVisible = false">取消</el-button>
+          <el-button type="primary" :loading="uploading" @click="submitUpload">提交</el-button>
+        </template>
+      </el-dialog>
+
       <div class="actions">
         <el-button type="primary" @click="$router.push('/')">返回首页</el-button>
         <el-button @click="handleLogout">退出登录</el-button>
@@ -69,6 +121,8 @@
 <script>
 import { addFavorite, getProfile } from '@/api/user'
 import { logout } from '@/api/auth'
+import { getMyModels, updateStatus, uploadModel } from '@/api/models'
+
 
 export default {
   name: 'Profile',
@@ -84,11 +138,19 @@ export default {
         favorites: []
       },
       newFavorite: '',
-      addingFavorite: false
+      addingFavorite: false,
+      myList: [],
+      myLoading: false,
+      myPage: 1,
+      mySize: 10,
+      uploadDialogVisible: false,
+      uploading: false,
+      upload: { title: '', description: '', price_cents: null, file: null, cover: null }
     }
   },
   async created() {
     await this.loadProfile()
+    await this.fetchMyModels()
   },
   methods: {
     async loadProfile() {
@@ -116,6 +178,46 @@ export default {
       } finally {
         this.addingFavorite = false
       }
+    },
+    async fetchMyModels() {
+      this.myLoading = true
+      try {
+        const res = await getMyModels({ page: this.myPage, size: this.mySize })
+        this.myList = res.data.list || []
+      } finally { this.myLoading = false }
+    },
+    changeMyPage(p) { this.myPage = p; this.fetchMyModels() },
+    async setStatus(id, status) {
+      await updateStatus(id, status)
+      this.$message.success(status === 1 ? '已上架' : (status === 2 ? '已下架' : '状态已更新'))
+      this.fetchMyModels()
+    },
+    statusText(s) {
+      if (s === 1) return '上架'
+      if (s === 2) return '下架'
+      return '待定'
+    },
+    onFileChange(e) { this.upload.file = e.target.files?.[0] || null },
+    onCoverChange(e) { this.upload.cover = e.target.files?.[0] || null },
+    async submitUpload() {
+      const { title, price_cents, file } = this.upload
+      if (!title || !price_cents || !file) { this.$message.error('标题、价格、模型文件为必填'); return }
+      const fd = new FormData()
+      fd.append('title', title)
+      fd.append('description', this.upload.description || '')
+      fd.append('price_cents', String(price_cents))
+      fd.append('file', file)
+      if (this.upload.cover) fd.append('cover', this.upload.cover)
+      this.uploading = true
+      try {
+        await uploadModel(fd)
+        this.$message.success('上传成功，作品为草稿状态')
+        this.uploadDialogVisible = false
+        this.upload = { title: '', description: '', price_cents: null, file: null, cover: null }
+        this.fetchMyModels()
+      } catch (e) {
+        this.$message.error('上传失败')
+      } finally { this.uploading = false }
     },
     removeFavorite(index) {
       this.$confirm('确定要删除这个收藏吗？', '提示', {
