@@ -12,6 +12,10 @@ export function listOrders() {
   return apiRequest.get('/orders')
 }
 
+export function getOrderDetail(id) {
+  return apiRequest.get('/orders/detail', { params: { id } })
+}
+
 export function refundOrder(id) {
   return apiRequest.post('/orders/refund', null, { params: { id } })
 }

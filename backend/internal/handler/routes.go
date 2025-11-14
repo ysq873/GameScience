@@ -93,6 +93,11 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				},
 				{
 					Method:  http.MethodGet,
+					Path:    "/api/orders/detail",
+					Handler: orderDetailHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
 					Path:    "/api/user/models",
 					Handler: listMyModelsHandler(serverCtx),
 				},

@@ -42,7 +42,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   user_id VARCHAR(64) NOT NULL,
   total_cents INT NOT NULL,
-  status ENUM('pending','paid','refunded') NOT NULL DEFAULT 'pending',
+  status TINYINT NOT NULL DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 )`)
