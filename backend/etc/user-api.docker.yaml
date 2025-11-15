@@ -1,0 +1,6 @@
+Name: user-api
+Host: 0.0.0.0
+Port: 8888
+KratosPublicURL: http://kratos:4433
+MysqlDataSource: root:123456@tcp(mysql:3306)/gsbackend?parseTime=true&multiStatements=true
+StorageBasePath: /data/storage

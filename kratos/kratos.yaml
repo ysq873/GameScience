@@ -7,11 +7,11 @@ log:
 
 serve:
   public:
-    base_url: http://127.0.0.1:4433
+    base_url: http://123.60.128.113/.ory
     cors:
       enabled: true
       allowed_origins:
-        - http://127.0.0.1:3000
+        - http://123.60.128.113
       allowed_methods:
         - GET
         - POST
@@ -36,20 +36,20 @@ session:
     same_site: Lax
 
 selfservice:
-  default_browser_return_url: http://127.0.0.1:3000/profile
+  default_browser_return_url: http://123.60.128.113/profile
   allowed_return_urls:
-    - http://127.0.0.1:3000
+    - http://123.60.128.113
   
   flows:
     error:
-      ui_url: http://127.0.0.1:3000/error
+      ui_url: http://123.60.128.113/error
     
     login:
-      ui_url: http://127.0.0.1:3000/login
+      ui_url: http://123.60.128.113/login
       lifespan: 10m
       
     registration:
-      ui_url: http://127.0.0.1:3000/registration
+      ui_url: http://123.60.128.113/registration
       lifespan: 10m
       after:
         password:
@@ -57,15 +57,15 @@ selfservice:
             - hook: session
     logout:
       after:
-        default_browser_return_url: http://127.0.0.1:3000/login
+        default_browser_return_url: http://123.60.128.113/login
 
     settings:
-      ui_url: http://127.0.0.1:3000/settings
+      ui_url: http://123.60.128.113/settings
       privileged_session_max_age: 15m
       
     recovery:
       enabled: true
-      ui_url: http://127.0.0.1:3000/recovery
+      ui_url: http://123.60.128.113/recovery
       lifespan: 10m
       after:
         hooks:
@@ -74,10 +74,10 @@ selfservice:
       
     verification:
       enabled: true
-      ui_url: http://127.0.0.1:3000/verification
+      ui_url: http://123.60.128.113/verification
       lifespan: 10m
       after:
-        default_browser_return_url: http://127.0.0.1:3000/
+        default_browser_return_url: http://123.60.128.113/
 
 
   methods:

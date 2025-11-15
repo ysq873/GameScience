@@ -1,0 +1,81 @@
+version: "3.9"
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: gs-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: "123456"
+      TZ: "Asia/Shanghai"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p123456"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: gs-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - backend-storage:/data/storage
+      - ./backend/etc/user-api.docker.yaml:/app/etc/user-api.yaml:ro
+    expose:
+      - "8888"
+    environment:
+      TZ: "Asia/Shanghai"
+
+  kratos-migrate:
+    image: oryd/kratos:v1.2.0
+    container_name: gs-kratos-migrate
+    depends_on:
+      mysql:
+        condition: service_healthy
+    command: ["migrate", "sql", "-e", "--yes", "mysql://root:123456@tcp(mysql:3306)/kratos?parseTime=true&multiStatements=true"]
+    restart: "on-failure"
+
+  kratos:
+    image: oryd/kratos:v1.2.0
+    container_name: gs-kratos
+    depends_on:
+      kratos-migrate:
+        condition: service_completed_successfully
+    volumes:
+      - ./kratos:/etc/kratos:ro
+    environment:
+      DSN: "mysql://root:123456@tcp(mysql:3306)/kratos?parseTime=true&multiStatements=true"
+      SERVE_PUBLIC_BASE_URL: "http://123.60.128.113/.ory"
+      SERVE_ADMIN_BASE_URL: "http://kratos:4434"
+      LOG_LEVEL: "debug"
+    command: ["serve", "-c", "/etc/kratos/kratos.yaml", "--dev"]
+    expose:
+      - "4433"
+      - "4434"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: gs-frontend
+    depends_on:
+      backend:
+        condition: service_started
+      kratos:
+        condition: service_started
+    ports:
+      - "80:80"
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
+  backend-storage:
