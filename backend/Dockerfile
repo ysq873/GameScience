@@ -8,10 +8,9 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /out/user-api .
 
-FROM gcr.io/distroless/static-debian12:nonroot
+FROM debian:bookworm-slim
 WORKDIR /app
 COPY --from=builder /out/user-api /app/user-api
 EXPOSE 8888
 VOLUME ["/data/storage"]
-USER nonroot
 ENTRYPOINT ["/app/user-api","-f","/app/etc/user-api.yaml"]
