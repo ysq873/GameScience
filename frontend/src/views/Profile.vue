@@ -28,32 +28,25 @@
             <span>我的收藏</span>
           </div>
         </template>
-        <div class="add-favorite">
-          <el-input
-            v-model="newFavorite"
-            placeholder="输入收藏项目"
-            style="width: 300px; margin-right: 1rem"
-            @keyup.enter="addFavorite"
-          />
-          <el-button type="primary" @click="addFavorite" :loading="addingFavorite">
-            添加收藏
-          </el-button>
-        </div>
-        <el-table :data="user.favorites" style="width: 100%; margin-top: 1rem">
-          <el-table-column prop="item" label="收藏项目">
+        <el-table :data="favList" style="width: 100%; margin-top: 1rem">
+          <el-table-column label="封面" width="160">
             <template #default="scope">
-              {{ scope.row }}
+              <template v-if="scope.row.cover_url">
+                <img :src="isAbsolute(scope.row.cover_url) ? scope.row.cover_url : coverSrc(scope.row.cover_url)" style="width:120px;height:72px;object-fit:cover;border-radius:4px" />
+              </template>
+              <span v-else>无封面</span>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="100">
+          <el-table-column prop="title" label="标题" />
+          <el-table-column label="价格">
             <template #default="scope">
-              <el-button
-                type="danger"
-                link
-                @click="removeFavorite(scope.$index)"
-              >
-                删除
-              </el-button>
+              {{ (Number(scope.row.price_cents) / 100).toFixed(2) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="160">
+            <template #default="scope">
+              <el-button type="primary" link @click="$router.push('/models/'+scope.row.id)">查看</el-button>
+              <el-button type="danger" link @click="removeFavoriteModel(scope.row.id)">取消收藏</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -131,9 +124,10 @@
 </template>
 
 <script>
-import { addFavorite, getProfile } from '@/api/user'
+import { getProfile } from '@/api/user'
 import { logout } from '@/api/auth'
 import { getMyModels, updateStatus, uploadModel } from '@/api/models'
+import { listFavorites, removeFavorite } from '@/api/favorites'
 
 
 export default {
@@ -149,8 +143,7 @@ export default {
         },
         favorites: []
       },
-      newFavorite: '',
-      addingFavorite: false,
+      favList: [],
       myList: [],
       myLoading: false,
       myPage: 1,
@@ -162,6 +155,7 @@ export default {
   },
   async created() {
     await this.loadProfile()
+    await this.loadFavorites()
     await this.fetchMyModels()
   },
   methods: {
@@ -174,23 +168,9 @@ export default {
         this.$router.push('/login')
       }
     },
-    async addFavorite() {
-      if (!this.newFavorite.trim()) {
-        this.$message.warning('请输入收藏内容')
-        return
-      }
-
-      this.addingFavorite = true
-      try {
-        const response = await addFavorite(this.newFavorite.trim())
-        this.user = response.data
-        this.newFavorite = ''
-        this.$message.success('添加收藏成功')
-      } catch (error) {
-        this.$message.error('添加收藏失败')
-      } finally {
-        this.addingFavorite = false
-      }
+    async loadFavorites() {
+      const res = await listFavorites()
+      this.favList = res.data.list || []
     },
     async fetchMyModels() {
       this.myLoading = true
@@ -239,13 +219,10 @@ export default {
       const norm = String(c).replace(/\\/g, '/')
       return `/api/static?file=${encodeURIComponent(norm)}`
     },
-    removeFavorite(index) {
-      this.$confirm('确定要删除这个收藏吗？', '提示', {
-        type: 'warning'
-      }).then(() => {
-        this.user.favorites.splice(index, 1)
-        this.$message.success('删除成功')
-      })
+    async removeFavoriteModel(id) {
+      await removeFavorite(id)
+      this.$message.success('已取消收藏')
+      await this.loadFavorites()
     },
     async handleLogout() {
       this.$confirm('确定要退出登录吗？', '提示', {

@@ -47,10 +47,10 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 		},
 	)
 
-	server.AddRoutes(
-		rest.WithMiddlewares(
-			[]rest.Middleware{serverCtx.AuthMiddleware},
-			[]rest.Route{
+		server.AddRoutes(
+			rest.WithMiddlewares(
+				[]rest.Middleware{serverCtx.AuthMiddleware},
+				[]rest.Route{
 				{
 					Method:  http.MethodPost,
 					Path:    "/api/user/favorites",
@@ -106,16 +106,31 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Path:    "/api/orders/refund",
 					Handler: refundOrderHandler(serverCtx),
 				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/purchases",
-					Handler: listPurchasesHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/models/download-token",
-					Handler: generateDownloadTokenHandler(serverCtx),
-				},
+					{
+						Method:  http.MethodGet,
+						Path:    "/api/purchases",
+						Handler: listPurchasesHandler(serverCtx),
+					},
+					{
+						Method:  http.MethodPost,
+						Path:    "/api/models/favorite",
+						Handler: addFavoriteModelHandler(serverCtx),
+					},
+					{
+						Method:  http.MethodDelete,
+						Path:    "/api/models/favorite",
+						Handler: removeFavoriteModelHandler(serverCtx),
+					},
+					{
+						Method:  http.MethodGet,
+						Path:    "/api/user/favorites/models",
+						Handler: listFavoriteModelsHandler(serverCtx),
+					},
+					{
+						Method:  http.MethodPost,
+						Path:    "/api/models/download-token",
+						Handler: generateDownloadTokenHandler(serverCtx),
+					},
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/download",

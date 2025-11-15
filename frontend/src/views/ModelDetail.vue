@@ -28,6 +28,7 @@
           <div class="actions">
             <el-button v-if="!purchasedByMe" type="primary" :disabled="model.status !== 1" @click="buy">购买</el-button>
             <el-button v-else type="success" @click="$router.push('/library')">去已购库</el-button>
+            <el-button :type="isFav ? 'warning' : 'default'" :loading="favLoading" :disabled="favLoading" @click="toggleFav" style="margin-left:8px">{{ isFav ? '取消收藏' : '收藏' }}</el-button>
           </div>
         </el-card>
       </el-col>
@@ -38,11 +39,12 @@
 <script>
 import { getModel } from '@/api/models'
 import { createOrder } from '@/api/orders'
+import { addFavorite, removeFavorite, listFavorites } from '@/api/favorites'
 
 export default {
   name: 'ModelDetail',
   data() {
-    return { model: {}, loading: false, purchasedByMe: false }
+    return { model: {}, loading: false, purchasedByMe: false, isFav: false, favLoading: false }
   },
   computed: {
     coverUrl() {
@@ -63,6 +65,11 @@ export default {
         const lp = await import('@/api/downloads').then(m => m.listPurchases())
         const list = lp.data.list || []
         this.purchasedByMe = list.some(it => Number(it.model_id) === Number(id))
+      } catch {}
+      try {
+        const favs = await listFavorites()
+        const lst = favs.data.list || []
+        this.isFav = lst.some(it => Number(it.id) === Number(id))
       } catch {}
     } finally { this.loading = false }
   },
@@ -87,7 +94,26 @@ export default {
       return `/api/static?file=${encodeURIComponent(norm)}`
     },
     statusText(s) { if (s === 1) return (this.purchasedByMe ? '已购买' : '上架'); if (s === 2) return '下架'; return '待定' },
-    statusType(s) { if (s === 1) return 'success'; if (s === 2) return 'info'; return 'warning' }
+    statusType(s) { if (s === 1) return 'success'; if (s === 2) return 'info'; return 'warning' },
+    async toggleFav() {
+      const id = Number(this.$route.params.id)
+      this.favLoading = true
+      try {
+        if (this.isFav) {
+          await removeFavorite(id)
+          this.isFav = false
+          this.$message.success('已取消收藏')
+        } else {
+          await addFavorite(id)
+          this.isFav = true
+          this.$message.success('已收藏')
+        }
+      } catch (e) {
+        this.$message.error(e.response?.data?.message || '操作失败')
+      } finally {
+        this.favLoading = false
+      }
+    }
   }
 }
 </script>

@@ -93,6 +93,12 @@ func NewServiceContext(c config.Config) *ServiceContext {
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 )`)
 		// 简化余额实现：仅使用 users.balance_cents
+		_ = sc.DB.Exec(`CREATE TABLE IF NOT EXISTS favorites (
+  user_id VARCHAR(64) NOT NULL,
+  model_id BIGINT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_user_model_fav (user_id, model_id)
+)`)
 	}
 	return sc
 }
