@@ -147,9 +147,8 @@ func downloadByTokenHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
         }
         // find file path (stored as relative path), and resolve to absolute under storage base
         var rel string
-        _ = svcCtx.DB.Conn.QueryRowCtx(r.Context(), &rel, "SELECT file_path FROM models WHERE id=?", mid)
-        if rel == "" {
-            logx.Errorf("model file path empty: model_id=%d", mid)
+        if err := svcCtx.DB.Conn.QueryRowCtx(r.Context(), &rel, "SELECT file_path FROM models WHERE id=?", mid); err != nil || rel == "" {
+            logx.Errorf("model file path missing: model_id=%d err=%v", mid, err)
             w.Header().Set("Content-Type", "application/json")
             w.WriteHeader(http.StatusNotFound)
             _ = json.NewEncoder(w).Encode(map[string]interface{}{"code": "file_missing", "message": http.StatusText(http.StatusNotFound)})
@@ -158,7 +157,7 @@ func downloadByTokenHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
         base := filepath.Clean(svcCtx.Config.StorageBasePath)
         abs := filepath.Clean(filepath.Join(base, filepath.FromSlash(rel)))
         if rp, err := filepath.Rel(base, abs); err != nil || strings.HasPrefix(rp, "..") {
-            logx.Errorf("path outside base: abs=%s base=%s", abs, base)
+            logx.Errorf("path outside base: uid=%s model_id=%d rel=%s abs=%s base=%s", uid, mid, rel, abs, base)
             w.Header().Set("Content-Type", "application/json")
             w.WriteHeader(http.StatusForbidden)
             _ = json.NewEncoder(w).Encode(map[string]interface{}{"code": "path_outside_base", "message": http.StatusText(http.StatusForbidden)})
@@ -166,7 +165,7 @@ func downloadByTokenHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
         }
         f, err := os.Open(abs)
         if err != nil {
-            logx.Errorf("file open failed: abs=%s err=%v", abs, err)
+            logx.Errorf("file open failed: uid=%s model_id=%d rel=%s abs=%s err=%v", uid, mid, rel, abs, err)
             w.Header().Set("Content-Type", "application/json")
             w.WriteHeader(http.StatusNotFound)
             _ = json.NewEncoder(w).Encode(map[string]interface{}{"code": "file_open_failed", "message": http.StatusText(http.StatusNotFound), "file": rel})

@@ -26,17 +26,17 @@ var ErrTokenExpired = errors.New("download token expired")
 var ErrTokenUserMismatch = errors.New("download token user mismatch")
 
 func (r *DownloadRepo) ConsumeToken(ctx context.Context, token string, userId string) (int64, error) {
-    // return model_id if valid, and mark as used by deleting (one-time)
     var mid int64
     err := r.db.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
-        var uid string
-        var expires time.Time
-        // single query to reduce inconsistencies
-        if err := session.QueryRowCtx(ctx, &uid, "SELECT user_id FROM download_tokens WHERE token=?", token); err != nil { return err }
-        if err := session.QueryRowCtx(ctx, &mid, "SELECT model_id FROM download_tokens WHERE token=?", token); err != nil { return err }
-        if err := session.QueryRowCtx(ctx, &expires, "SELECT expires_at FROM download_tokens WHERE token=?", token); err != nil { return err }
-        if uid != userId { return ErrTokenUserMismatch }
-        if time.Now().After(expires) { return ErrTokenExpired }
+        var row struct {
+            UserId   string    `db:"user_id"`
+            ModelId  int64     `db:"model_id"`
+            Expires  time.Time `db:"expires_at"`
+        }
+        if err := session.QueryRowCtx(ctx, &row, "SELECT user_id, model_id, expires_at FROM download_tokens WHERE token=? FOR UPDATE", token); err != nil { return err }
+        if row.UserId != userId { return ErrTokenUserMismatch }
+        if time.Now().After(row.Expires) { return ErrTokenExpired }
+        mid = row.ModelId
         _, err := session.ExecCtx(ctx, "DELETE FROM download_tokens WHERE token=?", token)
         return err
     })
