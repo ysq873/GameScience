@@ -39,7 +39,36 @@ export default {
     async download(modelId) {
       const res = await generateDownloadToken(modelId)
       const token = res.data.token
-      window.location.href = `/api/download?token=${token}`
+      const resp = await fetch(`/api/download?token=${token}`, { credentials: 'include' })
+      if (!resp.ok) {
+        let msg = `下载失败(${resp.status})`
+        try {
+          const ct = resp.headers.get('Content-Type') || ''
+          if (ct.includes('application/json')) {
+            const j = await resp.json()
+            if (j && j.message) msg = j.message
+          } else {
+            const t = await resp.text()
+            if (t) msg = t
+          }
+        } catch {}
+        // eslint-disable-next-line no-alert
+        alert(msg)
+        return
+      }
+      const blob = await resp.blob()
+      const cd = resp.headers.get('Content-Disposition') || ''
+      let filename = 'download'
+      const m = cd.match(/filename="?([^";]+)"?/i)
+      if (m && m[1]) filename = m[1]
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
     },
     isAbsolute(u) { return /^https?:\/\//i.test(u) },
     coverSrc(c) { if (!c) return ''; const norm = String(c).replace(/\\/g, '/'); return `/api/static?file=${encodeURIComponent(norm)}` }

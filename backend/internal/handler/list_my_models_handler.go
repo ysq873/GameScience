@@ -16,7 +16,7 @@ func listMyModelsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
         size, _ := strconv.Atoi(r.URL.Query().Get("size"))
         sess, ok := middleware.GetSessionFromCtx(r.Context())
         if !ok {
-            httpx.ErrorCtx(r.Context(), w, http.ErrNoCookie)
+            http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
             return
         }
         repoM := repo.NewModelRepo(svcCtx.DB.Conn)

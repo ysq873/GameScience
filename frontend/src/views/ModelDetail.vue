@@ -26,7 +26,8 @@
             <el-tag size="small" :type="statusType(model.status)">{{ statusText(model.status) }}</el-tag>
           </div>
           <div class="actions">
-            <el-button type="primary" :disabled="model.status !== 1" @click="buy">购买</el-button>
+            <el-button v-if="!purchasedByMe" type="primary" :disabled="model.status !== 1" @click="buy">购买</el-button>
+            <el-button v-else type="success" @click="$router.push('/library')">去已购库</el-button>
           </div>
         </el-card>
       </el-col>
@@ -41,7 +42,7 @@ import { createOrder } from '@/api/orders'
 export default {
   name: 'ModelDetail',
   data() {
-    return { model: {}, loading: false }
+    return { model: {}, loading: false, purchasedByMe: false }
   },
   computed: {
     coverUrl() {
@@ -58,13 +59,25 @@ export default {
       const id = this.$route.params.id
       const res = await getModel(id)
       this.model = res.data
+      try {
+        const lp = await import('@/api/downloads').then(m => m.listPurchases())
+        const list = lp.data.list || []
+        this.purchasedByMe = list.some(it => Number(it.model_id) === Number(id))
+      } catch {}
     } finally { this.loading = false }
   },
   methods: {
     async buy() {
-      const res = await createOrder([Number(this.$route.params.id)])
-      const orderId = res.data.order_id
-      this.$router.push(`/pay/${orderId}`)
+      if (this.purchasedByMe) { this.$message.warning('已购买过该模型'); this.$router.push('/library'); return }
+      try {
+        const res = await createOrder([Number(this.$route.params.id)])
+        const orderId = res.data.order_id
+        this.$router.push(`/pay/${orderId}`)
+      } catch (e) {
+        const code = e.response?.data?.code
+        if (code === 'already_purchased') { this.$message.warning('已购买过该模型'); this.$router.push('/library'); return }
+        this.$message.error(e.response?.data?.message || '下单失败')
+      }
     },
     formatYuan(c) { return (Number(c) / 100).toFixed(2) },
     isAbsolute(u) { return /^https?:\/\//i.test(u) },
@@ -73,7 +86,7 @@ export default {
       const norm = String(c).replace(/\\/g, '/')
       return `/api/static?file=${encodeURIComponent(norm)}`
     },
-    statusText(s) { if (s === 1) return '上架'; if (s === 2) return '下架'; return '待定' },
+    statusText(s) { if (s === 1) return (this.purchasedByMe ? '已购买' : '上架'); if (s === 2) return '下架'; return '待定' },
     statusType(s) { if (s === 1) return 'success'; if (s === 2) return 'info'; return 'warning' }
   }
 }

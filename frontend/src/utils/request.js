@@ -17,10 +17,15 @@ export const apiRequest = axios.create({
 kratosRequest.interceptors.response.use(
   response => response,
   error => {
-    const message = error.response?.data?.error?.message || 
-                   error.response?.data?.ui?.messages?.[0]?.text || 
-                   '请求失败'
-    ElMessage.error(message)
+    const status = error.response?.status
+    if (status === 401) {
+      ElMessage.error('请先登录')
+    } else {
+      const message = error.response?.data?.error?.message || 
+                     error.response?.data?.ui?.messages?.[0]?.text || 
+                     '请求失败'
+      ElMessage.error(message)
+    }
     return Promise.reject(error)
   }
 )
@@ -29,9 +34,12 @@ kratosRequest.interceptors.response.use(
 apiRequest.interceptors.response.use(
   response => response,
   error => {
-    ElMessage.error(error.response?.data?.message || '请求失败')
-    if (error.response?.status === 401) {
+    const status = error.response?.status
+    if (status === 401) {
+      ElMessage.error('请先登录')
       window.location.href = '/login'
+    } else {
+      ElMessage.error(error.response?.data?.message || '请求失败')
     }
     return Promise.reject(error)
   }

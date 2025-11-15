@@ -18,15 +18,15 @@ import (
 func uploadModelHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sess, ok := middleware.GetSessionFromCtx(r.Context())
-		if !ok {
-			httpx.ErrorCtx(r.Context(), w, errors.New("未登录或会话失效"))
-			return
-		}
+        if !ok {
+            http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+            return
+        }
 		ownerId := sess.GetIdentity().Id
-		if ownerId == "" {
-			httpx.ErrorCtx(r.Context(), w, errors.New("未登录或会话失效"))
-			return
-		}
+        if ownerId == "" {
+            http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+            return
+        }
 		_ = r.ParseMultipartForm(64 << 20)
 		title := r.FormValue("title")
 		description := r.FormValue("description")

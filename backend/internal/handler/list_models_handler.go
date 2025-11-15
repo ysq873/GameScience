@@ -29,7 +29,7 @@ func listModelsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
         if mine {
             sess, ok := middleware.GetSessionFromCtx(r.Context())
             if !ok {
-                httpx.ErrorCtx(r.Context(), w, http.ErrNoCookie)
+                http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
                 return
             }
             rows, err = repoM.ListByOwner(r.Context(), sess.GetIdentity().Id, page, size)

@@ -3,7 +3,9 @@
     <h2>我的订单</h2>
     <el-table :data="list" v-loading="loading">
       <el-table-column prop="id" label="订单ID" width="100" />
-      <el-table-column prop="total_cents" label="总金额" />
+      <el-table-column label="总金额（元）">
+        <template #default="scope">{{ formatYuan(scope.row.total_cents) }}</template>
+      </el-table-column>
       <el-table-column label="状态">
         <template #default="scope">{{ statusText(scope.row) }}</template>
       </el-table-column>
@@ -37,10 +39,18 @@ export default {
     goPay(id) { this.$router.push(`/pay/${id}`) },
     async refund(id) { await refundOrder(id); this.fetch() },
     statusCode(row) { return Number.isFinite(row.status_code) ? row.status_code : (typeof row.status === 'number' ? row.status : undefined) },
-    statusText(row) { const map = {0:'处理中',1:'paid',2:'过期',3:'refunded'}; const code = this.statusCode(row); return typeof row.status === 'string' && !Number.isFinite(code) ? row.status : (map[code] || String(row.status)) },
+    statusText(row) {
+      const code = this.statusCode(row)
+      const codeMap = {0:'待支付',1:'已支付',2:'已过期',3:'已退款'}
+      if (Number.isFinite(code)) return codeMap[code] || String(code)
+      const s = String(row.status || '').toLowerCase()
+      const strMap = {pending:'待支付',paid:'已支付',expired:'已过期',refunded:'已退款'}
+      return strMap[s] || (row.status === undefined ? '' : String(row.status))
+    },
     isExpired(row) { const c = this.statusCode(row); return c === 2 || row.status === 'expired' },
     isPaid(row) { const c = this.statusCode(row); return c === 1 || row.status === 'paid' },
-    isPendingOrExpired(row) { const c = this.statusCode(row); if (Number.isFinite(c)) return c === 0 || c === 2; return row.status === 'pending' || row.status === 'expired' }
+    isPendingOrExpired(row) { const c = this.statusCode(row); if (Number.isFinite(c)) return c === 0 || c === 2; return row.status === 'pending' || row.status === 'expired' },
+    formatYuan(c) { return (Number(c) / 100).toFixed(2) }
   }
 }
 </script>

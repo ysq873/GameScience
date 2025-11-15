@@ -1,11 +1,13 @@
 package handler
 
 import (
-	"crypto/rand"
-	"encoding/hex"
-	"net/http"
-	"strconv"
-	"time"
+    "crypto/rand"
+    "encoding/hex"
+    "encoding/json"
+    "net/http"
+    "strconv"
+    "time"
+    "strings"
 
 	"backend/internal/middleware"
 	"backend/internal/repo"
@@ -19,26 +21,40 @@ type CreateOrderReq struct {
 }
 
 func createOrderHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var req CreateOrderReq
-		if err := httpx.Parse(r, &req); err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
-			return
-		}
+    return func(w http.ResponseWriter, r *http.Request) {
+        var req CreateOrderReq
+        if err := httpx.Parse(r, &req); err != nil {
+            httpx.ErrorCtx(r.Context(), w, err)
+            return
+        }
 		sess, ok := middleware.GetSessionFromCtx(r.Context())
 		if !ok {
-			httpx.ErrorCtx(r.Context(), w, http.ErrNoCookie)
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return
 		}
 		userId := sess.GetIdentity().Id
-		or := repo.NewOrderRepo(svcCtx.DB.Conn)
-		oid, err := or.Create(r.Context(), userId, req.Items)
-		if err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
-			return
-		}
-		httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{"order_id": oid})
-	}
+        or := repo.NewOrderRepo(svcCtx.DB.Conn)
+        if len(req.Items) > 0 {
+            qs := make([]string, 0, len(req.Items))
+            args := make([]interface{}, 0, len(req.Items)+1)
+            args = append(args, userId)
+            for _, id := range req.Items { qs = append(qs, "?"); args = append(args, id) }
+            var dups []int64
+            _ = svcCtx.DB.Conn.QueryRowsCtx(r.Context(), &dups, "SELECT model_id FROM purchases WHERE user_id=? AND model_id IN ("+strings.Join(qs, ",")+")", args...)
+            if len(dups) > 0 {
+                w.Header().Set("Content-Type", "application/json")
+                w.WriteHeader(http.StatusBadRequest)
+                _ = json.NewEncoder(w).Encode(map[string]interface{}{"code": "already_purchased", "duplicates": dups, "message": "已购买过"})
+                return
+            }
+        }
+        oid, err := or.Create(r.Context(), userId, req.Items)
+        if err != nil {
+            httpx.ErrorCtx(r.Context(), w, err)
+            return
+        }
+        httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{"order_id": oid})
+    }
 }
 
 func payOrderHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
@@ -115,7 +131,7 @@ func listOrdersHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sess, ok := middleware.GetSessionFromCtx(r.Context())
 		if !ok {
-			httpx.ErrorCtx(r.Context(), w, http.ErrNoCookie)
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return
 		}
 		userId := sess.GetIdentity().Id
@@ -160,7 +176,7 @@ func orderDetailHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 		sess, ok := middleware.GetSessionFromCtx(r.Context())
 		if !ok {
-			httpx.ErrorCtx(r.Context(), w, http.ErrNoCookie)
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return
 		}
 		or := repo.NewOrderRepo(svcCtx.DB.Conn)

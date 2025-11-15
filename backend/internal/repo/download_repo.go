@@ -2,9 +2,10 @@ package repo
 
 import (
     "context"
-    "time"
     "crypto/rand"
     "encoding/hex"
+    "errors"
+    "time"
 
     "github.com/zeromicro/go-zero/core/stores/sqlx"
 )
@@ -21,17 +22,21 @@ func (r *DownloadRepo) CreateToken(ctx context.Context, userId string, modelId i
     return token, err
 }
 
+var ErrTokenExpired = errors.New("download token expired")
+var ErrTokenUserMismatch = errors.New("download token user mismatch")
+
 func (r *DownloadRepo) ConsumeToken(ctx context.Context, token string, userId string) (int64, error) {
     // return model_id if valid, and mark as used by deleting (one-time)
     var mid int64
     err := r.db.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
         var uid string
         var expires time.Time
-        if err := session.QueryRowCtx(ctx, &mid, "SELECT model_id FROM download_tokens WHERE token=?", token); err != nil { return err }
+        // single query to reduce inconsistencies
         if err := session.QueryRowCtx(ctx, &uid, "SELECT user_id FROM download_tokens WHERE token=?", token); err != nil { return err }
+        if err := session.QueryRowCtx(ctx, &mid, "SELECT model_id FROM download_tokens WHERE token=?", token); err != nil { return err }
         if err := session.QueryRowCtx(ctx, &expires, "SELECT expires_at FROM download_tokens WHERE token=?", token); err != nil { return err }
-        if uid != userId { return sqlx.ErrNotFound }
-        if time.Now().After(expires) { return sqlx.ErrNotFound }
+        if uid != userId { return ErrTokenUserMismatch }
+        if time.Now().After(expires) { return ErrTokenExpired }
         _, err := session.ExecCtx(ctx, "DELETE FROM download_tokens WHERE token=?", token)
         return err
     })

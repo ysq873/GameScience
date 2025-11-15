@@ -2,15 +2,13 @@
 package middleware
 
 import (
-	"context"
-	"errors"
-	"fmt"
-	"net/http"
-	"strings"
+    "context"
+    "fmt"
+    "net/http"
+    "strings"
 
-	ory "github.com/ory/kratos-client-go"
-	"github.com/zeromicro/go-zero/core/logx"
-	"github.com/zeromicro/go-zero/rest/httpx"
+    ory "github.com/ory/kratos-client-go"
+    "github.com/zeromicro/go-zero/core/logx"
 )
 
 type ctxKey string
@@ -75,9 +73,9 @@ func (m *KratosSessionMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc
 		} else {
 			logx.Errorf("no ory_kratos_session cookie in request")
 		}
-		// 无有效会话
-		httpx.ErrorCtx(r.Context(), w, errors.New(http.StatusText(http.StatusUnauthorized)))
-	}
+        // 无有效会话
+        http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+    }
 }
 
 func tokenFromHeaders(r *http.Request) string {

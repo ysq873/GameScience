@@ -12,13 +12,17 @@ import (
 )
 
 func getProfileHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		l := logic.NewGetProfileLogic(r.Context(), svcCtx)
-		resp, err := l.GetProfile()
-		if err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
-		} else {
-			httpx.OkJsonCtx(r.Context(), w, resp)
-		}
-	}
+    return func(w http.ResponseWriter, r *http.Request) {
+        l := logic.NewGetProfileLogic(r.Context(), svcCtx)
+        resp, err := l.GetProfile()
+        if err != nil {
+            if err == http.ErrNoCookie {
+                http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+                return
+            }
+            httpx.ErrorCtx(r.Context(), w, err)
+            return
+        }
+        httpx.OkJsonCtx(r.Context(), w, resp)
+    }
 }
